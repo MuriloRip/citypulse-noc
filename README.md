@@ -13,6 +13,8 @@ dotnet run --urls http://0.0.0.0:4173
 # abrir http://localhost:4173
 ```
 
+O repositório inclui `NuGet.config` com `nuget.org` explicitamente habilitado. Se o Windows ainda informar `NU1100`, a configuração global do NuGet local está sem internet ou com a fonte desabilitada; execute `dotnet nuget list source` e confirme que `https://api.nuget.org/v3/index.json` aparece como `Enabled`. Em uma rede corporativa, libere esse endereço no proxy/firewall.
+
 O banco SQLite `citypulse.db` é criado automaticamente. A documentação interativa fica em `/swagger`. Para disparar uma varredura fora do ciclo automático de 30 segundos, use `POST /api/poll`.
 
 ## Arquitetura real
