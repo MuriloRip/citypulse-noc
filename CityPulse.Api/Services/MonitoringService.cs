@@ -45,7 +45,7 @@ public sealed class MonitoringService(IServiceScopeFactory scopes, IHttpClientFa
                 asset.TriageStartedAtUtc = null;
                 await OpenIncidentAsync(db, asset, "Triagem expirou após 5 minutos", "Falha técnica por ausência de resposta", cancellationToken);
             }
-            var probeAssets = assets.Where(x => x.Status is not (AssetStatus.PendingTriage or AssetStatus.NoPower)).ToList();
+            var probeAssets = assets.Where(x => x.Status is not (AssetStatus.PendingTriage or AssetStatus.NoPower) && !HasUnavailableAncestor(x, assets)).ToList();
             var results = new ConcurrentDictionary<Guid, ProbeResult>();
             await Parallel.ForEachAsync(probeAssets, new ParallelOptions { MaxDegreeOfParallelism = 8, CancellationToken = cancellationToken }, async (asset, ct) => results[asset.Id] = await ProbeAsync(asset, ct));
             foreach (var asset in probeAssets)
@@ -58,11 +58,7 @@ public sealed class MonitoringService(IServiceScopeFactory scopes, IHttpClientFa
                 if (asset.Status == AssetStatus.Down) await OpenIncidentAsync(db, asset, asset.Name + " indisponível", result.Type, cancellationToken);
                 await ResolveIfOnlineAsync(db, asset, cancellationToken);
             }
-            foreach (var asset in assets)
-            {
-                var parent = asset.ParentId is null ? null : assets.FirstOrDefault(x => x.Id == asset.ParentId);
-                if (parent?.Status is AssetStatus.Down or AssetStatus.Unreachable) asset.Status = AssetStatus.Unreachable;
-            }
+            PropagateDependencyState(assets);
             await db.SaveChangesAsync(cancellationToken);
             LastPollAtUtc = now; Cycle++;
         }
@@ -81,12 +77,23 @@ public sealed class MonitoringService(IServiceScopeFactory scopes, IHttpClientFa
         var normalized = resolution?.Trim().ToUpperInvariant();
         if (normalized == "POWER_OUTAGE") { asset.Status = AssetStatus.NoPower; asset.TriageStartedAtUtc = null; asset.ConsecutiveFailures = 0; await ResolveIfOnlineAsync(db, asset, cancellationToken, "Sem energia local confirmado"); }
         else if (normalized == "NETWORK_FAULT") { asset.Status = AssetStatus.Down; asset.TriageStartedAtUtc = null; await OpenIncidentAsync(db, asset, "Falha de equipamento confirmada", "Falha de rede / SLA acionado", cancellationToken); var children = await db.Assets.Where(x => x.ParentId == asset.Id).ToListAsync(cancellationToken); foreach (var child in children) child.Status = AssetStatus.Unreachable; }
-        else return (true, "Resolution must be POWER_OUTAGE or NETWORK_FAULT.");
+        else if (normalized == "RESTORE") { asset.Status = AssetStatus.Online; asset.TriageStartedAtUtc = null; asset.ConsecutiveFailures = 0; await ResolveIfOnlineAsync(db, asset, cancellationToken, "Operação restaurada pelo operador"); }
+        else return (true, "Resolution must be POWER_OUTAGE, NETWORK_FAULT or RESTORE.");
         await db.SaveChangesAsync(cancellationToken); return (true, "");
     }
 
     private static async Task OpenIncidentAsync(CityPulseDbContext db, Asset asset, string title, string type, CancellationToken ct) { if (!await db.Incidents.AnyAsync(x => x.AssetId == asset.Id && x.ResolvedAtUtc == null, ct)) db.Incidents.Add(new Incident { AssetId = asset.Id, Title = title, Type = type, Severity = asset.Tier == "high" ? "high" : "medium" }); }
     private static async Task ResolveIfOnlineAsync(CityPulseDbContext db, Asset asset, CancellationToken ct, string? note = null) { if (asset.Status is not (AssetStatus.Online or AssetStatus.NoPower)) return; var open = await db.Incidents.FirstOrDefaultAsync(x => x.AssetId == asset.Id && x.ResolvedAtUtc == null, ct); if (open is not null) { open.ResolvedAtUtc = DateTime.UtcNow; open.DurationMinutes = Math.Max(1, (int)(open.ResolvedAtUtc.Value - open.StartedAtUtc).TotalMinutes); if (note is not null) open.Type = note; } }
+    private static bool HasUnavailableAncestor(Asset asset, IReadOnlyCollection<Asset> assets)
+    {
+        var byId = assets.ToDictionary(x => x.Id); var parentId = asset.ParentId; var visited = new HashSet<Guid>();
+        while (parentId is not null && visited.Add(parentId.Value) && byId.TryGetValue(parentId.Value, out var parent)) { if (parent.Status is AssetStatus.Down or AssetStatus.Unreachable) return true; parentId = parent.ParentId; }
+        return false;
+    }
+    private static void PropagateDependencyState(IReadOnlyCollection<Asset> assets)
+    {
+        var changed = true; while (changed) { changed = false; foreach (var asset in assets) if (HasUnavailableAncestor(asset, assets) && asset.Status != AssetStatus.Unreachable) { asset.Status = AssetStatus.Unreachable; changed = true; } }
+    }
     private async Task<ProbeResult> ProbeAsync(Asset asset, CancellationToken ct)
     {
         if (!TargetPolicy.IsAllowed(asset.Address)) return new(false, AssetStatus.Down, null, "Alvo bloqueado pela whitelist");
