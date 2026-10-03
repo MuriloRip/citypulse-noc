@@ -2,7 +2,7 @@
 
 ## Direção
 
-O CityPulse será entregue como um **NOC web responsivo, local-first e demonstrável**, separado do kernel FonsecaOS em `citypulse/`. Como o ambiente não possui o SDK .NET 8, o MVP usa Node.js sem dependências externas para manter a demo executável; o núcleo de polling está isolado em funções que podem ser portadas diretamente para `Parallel.ForEachAsync`, `Ping` e `HttpClient` no serviço C# definitivo.
+O CityPulse será entregue como um **NOC web responsivo, local-first e operacional**, separado do kernel FonsecaOS em `citypulse/`. O backend final usa ASP.NET Core .NET 8, EF Core SQLite, `Parallel.ForEachAsync`, `Ping` e `HttpClient`; não é um simulador de conectividade.
 
 ## Design
 
@@ -20,12 +20,12 @@ O CityPulse será entregue como um **NOC web responsivo, local-first e demonstr�
 
 ## Estrutura
 
-- `server.js`: API HTTP, dados demonstrativos, motor de polling simulado, máquina soft/hard state, dependências e métricas.
-- `public/index.html`: shell sem framework e marcação semântica do NOC.
-- `public/styles.css`: sistema visual responsivo, estados, tabelas e mapa esquemático.
-- `public/app.js`: consumo da API, atualização periódica, filtros, seleção de ativo e modal de cadastro.
-- `manus-routes.json`: manifesto de rota exigido para preview e publicação.
+- `CityPulse.Api/Program.cs`: API minimal ASP.NET Core, CRUD, snapshot, health check e Swagger.
+- `CityPulse.Api/Services/MonitoringService.cs`: probes ICMP/HTTP reais, concorrência limitada e máquina soft/hard state.
+- `CityPulse.Api/Data/CityPulseDbContext.cs`: persistência SQLite e seed inicial.
+- `CityPulse.Api/Models/Entities.cs`: entidades Asset/Incident e contratos de entrada.
+- `CityPulse.Api/wwwroot`: interface NOC responsiva, manifesto de rotas e assets estáticos.
 
 ## Escopo entregue
 
-RF01 gestão visual de ativos com cadastro local; RF02 polling periódico simulado; RF03 confirmação após 3 falhas; RF04 dependência pai-filho e falha em cascata; RF05 MTTR e disponibilidade; RF06 painel NOC com alertas e tipo de problema. RNF02 é representado pelo processamento assíncrono do servidor; RNF04 pela fonte de dados em memória, pronta para troca por SQLite.
+RF01 gestão visual de ativos com CRUD persistente; RF02 polling periódico real; RF03 confirmação após 3 falhas; RF04 dependência pai-filho e falha em cascata; RF05 MTTR e disponibilidade; RF06 painel NOC com alertas e tipo de problema. RNF02 é atendido por `Parallel.ForEachAsync`; RNF04 por SQLite.
