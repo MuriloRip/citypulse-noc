@@ -51,8 +51,10 @@ public sealed class MonitoringService(IServiceScopeFactory scopes, IHttpClientFa
             foreach (var asset in probeAssets)
             {
                 var result = results[asset.Id]; asset.LastCheckedAtUtc = now;
-                if (result.Success) { asset.ConsecutiveFailures = 0; asset.Status = result.Status; asset.LatencyMs = result.LatencyMs; }
-                else { asset.ConsecutiveFailures++; asset.LatencyMs = null; if (result.Status == AssetStatus.Degraded || asset.ConsecutiveFailures >= HardStateFailures) asset.Status = result.Status; }
+                asset.TotalChecks++;
+                if (result.Success) { asset.SuccessfulChecks++; asset.ConsecutiveFailures = 0; asset.Status = result.Status; asset.LatencyMs = result.LatencyMs; }
+                else { asset.ConsecutiveFailures++; asset.LatencyMs = null; if (result.Status == AssetStatus.Degraded) asset.Status = result.Status; else if (asset.ConsecutiveFailures >= HardStateFailures) { asset.Status = AssetStatus.PendingTriage; asset.TriageStartedAtUtc = now; } }
+                asset.UptimePercent = asset.TotalChecks == 0 ? 100 : Math.Round(100d * asset.SuccessfulChecks / asset.TotalChecks, 2);
                 if (asset.Status == AssetStatus.Down) await OpenIncidentAsync(db, asset, asset.Name + " indisponível", result.Type, cancellationToken);
                 await ResolveIfOnlineAsync(db, asset, cancellationToken);
             }

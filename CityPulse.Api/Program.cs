@@ -32,6 +32,15 @@ app.MapPost("/api/assets/{id:guid}/status", async (Guid id, TriageRequest input,
     return Results.Ok(new { status = input.Resolution.Equals("POWER_OUTAGE", StringComparison.OrdinalIgnoreCase) ? AssetStatus.NoPower : AssetStatus.Down });
 });
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok", runtime = ".NET 8", probe = "ICMP + HTTP real" }));
+app.MapGet("/api/indicator", async (CityPulseDbContext db) =>
+{
+    var incidents = await db.Incidents.AsNoTracking().ToListAsync();
+    var now = DateTime.UtcNow;
+    var downtimeMinutes = incidents.Sum(x => (x.DurationMinutes ?? Math.Max(0, (int)(now - x.StartedAtUtc).TotalMinutes)));
+    var closed = incidents.Where(x => x.DurationMinutes.HasValue).ToList();
+    var assets = await db.Assets.AsNoTracking().ToListAsync();
+    return Results.Ok(new { indicator = "ISO 37120 10.04", downtimeMinutes, incidentCount = incidents.Count, activeIncidents = incidents.Count(x => x.ResolvedAtUtc is null), meanDowntimeMinutes = closed.Count == 0 ? 0 : Math.Round(closed.Average(x => x.DurationMinutes!.Value), 1), availabilityPercent = assets.Count == 0 ? 100 : Math.Round(assets.Average(x => x.UptimePercent), 2), formula = "tempo total de indisponibilidade / número de incidentes" });
+});
 app.MapGet("/api/snapshot", async (CityPulseDbContext db, MonitoringService monitoring) =>
 {
     var assets = await db.Assets.AsNoTracking().ToListAsync(); var incidents = await db.Incidents.AsNoTracking().OrderByDescending(x => x.StartedAtUtc).Take(20).ToListAsync(); var resolved = incidents.Where(x => x.DurationMinutes.HasValue).ToList();

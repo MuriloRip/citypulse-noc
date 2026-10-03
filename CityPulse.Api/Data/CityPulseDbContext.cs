@@ -24,6 +24,8 @@ public static class SeedData
     {
         await db.Database.EnsureCreatedAsync();
         try { await db.Database.ExecuteSqlRawAsync("ALTER TABLE Assets ADD COLUMN TriageStartedAtUtc TEXT NULL"); } catch { /* coluna já existe */ }
+        try { await db.Database.ExecuteSqlRawAsync("ALTER TABLE Assets ADD COLUMN TotalChecks INTEGER NOT NULL DEFAULT 0"); } catch { /* coluna já existe */ }
+        try { await db.Database.ExecuteSqlRawAsync("ALTER TABLE Assets ADD COLUMN SuccessfulChecks INTEGER NOT NULL DEFAULT 0"); } catch { /* coluna já existe */ }
         if (await db.Assets.AnyAsync()) return;
         var gateway = new Asset { Name = "Gateway local de teste", Address = "127.0.0.1", Category = "Rede", Tier = "high", Location = "Servidor CityPulse", Protocol = ProbeProtocol.Icmp };
         var portal = new Asset { Name = "Portal gov.br de teste", Address = "https://www.gov.br", Category = "Serviços", Tier = "high", Location = "Internet", Protocol = ProbeProtocol.Http, Parent = gateway };

@@ -18,6 +18,8 @@ public sealed class Asset
     public int? LatencyMs { get; set; }
     public int ConsecutiveFailures { get; set; }
     public double UptimePercent { get; set; } = 100;
+    public long TotalChecks { get; set; }
+    public long SuccessfulChecks { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? LastCheckedAtUtc { get; set; }
     public DateTime? TriageStartedAtUtc { get; set; }
