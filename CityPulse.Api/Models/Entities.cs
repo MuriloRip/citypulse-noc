@@ -1,6 +1,6 @@
 namespace CityPulse.Api.Models;
 
-public enum AssetStatus { Online, Degraded, Down, Unreachable }
+public enum AssetStatus { Online, Degraded, PendingTriage, NoPower, Down, Unreachable }
 public enum ProbeProtocol { Icmp, Http }
 
 public sealed class Asset
@@ -20,6 +20,7 @@ public sealed class Asset
     public double UptimePercent { get; set; } = 100;
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? LastCheckedAtUtc { get; set; }
+    public DateTime? TriageStartedAtUtc { get; set; }
 }
 
 public sealed class Incident
@@ -36,3 +37,4 @@ public sealed class Incident
 }
 
 public sealed record AssetRequest(string Name, string Address, string Category, string Tier, string Location, Guid? ParentId);
+public sealed record TriageRequest(string? Resolution);

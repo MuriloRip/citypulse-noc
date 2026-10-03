@@ -23,12 +23,20 @@ app.MapPost("/api/assets", async (AssetRequest input, CityPulseDbContext db) => 
 app.MapPut("/api/assets/{id:guid}", async (Guid id, AssetRequest input, CityPulseDbContext db) => await SaveAsset(input, id, db));
 app.MapDelete("/api/assets/{id:guid}", async (Guid id, CityPulseDbContext db) => { var asset = await db.Assets.FindAsync(id); if (asset is null) return Results.NotFound(); db.Assets.Remove(asset); await db.SaveChangesAsync(); return Results.Ok(); });
 app.MapPost("/api/poll", async (MonitoringService monitoring) => { await monitoring.RunPollCycleAsync(); return Results.Ok(); });
+app.MapPost("/api/assets/{id:guid}/status", async (Guid id, TriageRequest input, MonitoringService monitoring) =>
+{
+    if (string.IsNullOrWhiteSpace(input.Resolution)) return await monitoring.StartTriageAsync(id) ? Results.Ok(new { status = AssetStatus.PendingTriage }) : Results.NotFound();
+    var result = await monitoring.ResolveTriageAsync(id, input.Resolution);
+    if (!result.Found) return Results.NotFound(new { error = result.Error });
+    if (result.Error.Length > 0) return Results.BadRequest(new { error = result.Error });
+    return Results.Ok(new { status = input.Resolution.Equals("POWER_OUTAGE", StringComparison.OrdinalIgnoreCase) ? AssetStatus.NoPower : AssetStatus.Down });
+});
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok", runtime = ".NET 8", probe = "ICMP + HTTP real" }));
 app.MapGet("/api/snapshot", async (CityPulseDbContext db, MonitoringService monitoring) =>
 {
     var assets = await db.Assets.AsNoTracking().ToListAsync(); var incidents = await db.Incidents.AsNoTracking().OrderByDescending(x => x.StartedAtUtc).Take(20).ToListAsync(); var resolved = incidents.Where(x => x.DurationMinutes.HasValue).ToList();
     var availability = assets.Count == 0 ? 100 : assets.Average(x => x.UptimePercent); var mttr = resolved.Count == 0 ? 0 : (int)resolved.Average(x => x.DurationMinutes!.Value);
-    return Results.Ok(new { availability, mttr, activeIncidents = incidents.Count(x => x.ResolvedAtUtc is null), totalAssets = assets.Count, online = assets.Count(x => x.Status == AssetStatus.Online), degraded = assets.Count(x => x.Status == AssetStatus.Degraded), down = assets.Count(x => x.Status == AssetStatus.Down), unreachable = assets.Count(x => x.Status == AssetStatus.Unreachable), assets, incidents, lastPollAt = monitoring.LastPollAtUtc, cycle = monitoring.Cycle });
+    return Results.Ok(new { availability, mttr, activeIncidents = incidents.Count(x => x.ResolvedAtUtc is null), totalAssets = assets.Count, online = assets.Count(x => x.Status == AssetStatus.Online), degraded = assets.Count(x => x.Status == AssetStatus.Degraded), pendingTriage = assets.Count(x => x.Status == AssetStatus.PendingTriage), noPower = assets.Count(x => x.Status == AssetStatus.NoPower), down = assets.Count(x => x.Status == AssetStatus.Down), unreachable = assets.Count(x => x.Status == AssetStatus.Unreachable), assets, incidents, lastPollAt = monitoring.LastPollAtUtc, cycle = monitoring.Cycle });
 });
 app.MapFallbackToFile("index.html");
 app.Run();
