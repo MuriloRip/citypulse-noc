@@ -1,0 +1,11 @@
+{
+  "name": "citypulse-noc",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MVP demonstrável do CityPulse para monitoramento inteligente de infraestrutura municipal.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check public/app.js"
+  }
+}
