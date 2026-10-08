@@ -29,7 +29,7 @@ jobs:
           $env:CITYPULSE_VERSION = if ($env:GITHUB_REF_NAME -match '^v?(\d+\.\d+\.\d+)$') { $Matches[1] } else { '0.1.0' }
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" .\deploy\CityPulse.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: CityPulse-Windows-Installer
           path: .\artifacts\CityPulse-Setup-win-x64.exe
@@ -50,7 +50,7 @@ jobs:
           chmod +x ./package/linux-x64/CityPulse.Api ./package/linux-x64/run-citypulse.sh
           cp ./README.md ./package/linux-x64/README.md
           tar -C ./package -czf ./CityPulse-linux-x64.tar.gz linux-x64
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: CityPulse-Linux-x64
           path: ./CityPulse-linux-x64.tar.gz
