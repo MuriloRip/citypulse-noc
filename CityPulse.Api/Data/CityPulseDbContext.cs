@@ -17,21 +17,3 @@ public sealed class CityPulseDbContext(DbContextOptions<CityPulseDbContext> opti
         modelBuilder.Entity<Incident>().HasOne(x => x.Asset).WithMany().HasForeignKey(x => x.AssetId).OnDelete(DeleteBehavior.Cascade);
     }
 }
-
-public static class SeedData
-{
-    public static async Task EnsureAsync(CityPulseDbContext db)
-    {
-        await db.Database.EnsureCreatedAsync();
-        try { await db.Database.ExecuteSqlRawAsync("ALTER TABLE Assets ADD COLUMN TriageStartedAtUtc TEXT NULL"); } catch { /* coluna já existe */ }
-        try { await db.Database.ExecuteSqlRawAsync("ALTER TABLE Assets ADD COLUMN TotalChecks INTEGER NOT NULL DEFAULT 0"); } catch { /* coluna já existe */ }
-        try { await db.Database.ExecuteSqlRawAsync("ALTER TABLE Assets ADD COLUMN SuccessfulChecks INTEGER NOT NULL DEFAULT 0"); } catch { /* coluna já existe */ }
-        try { await db.Database.ExecuteSqlRawAsync("ALTER TABLE Assets ADD COLUMN UptimePercent REAL NOT NULL DEFAULT 100"); } catch { /* coluna já existe */ }
-        if (await db.Assets.AnyAsync()) return;
-        var gateway = new Asset { Name = "Gateway local de teste", Address = "127.0.0.1", Category = "Rede", Tier = "high", Location = "Servidor CityPulse", Protocol = ProbeProtocol.Icmp };
-        var portal = new Asset { Name = "Portal gov.br de teste", Address = "https://www.gov.br", Category = "Serviços", Tier = "high", Location = "Internet", Protocol = ProbeProtocol.Http, Parent = gateway };
-        var loopbackHttp = new Asset { Name = "API local HTTP", Address = "http://localhost:4173", Category = "Serviços", Tier = "medium", Location = "Servidor CityPulse", Protocol = ProbeProtocol.Http, Parent = gateway };
-        db.AddRange(gateway, portal, loopbackHttp);
-        await db.SaveChangesAsync();
-    }
-}

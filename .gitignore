@@ -3,5 +3,9 @@
 *.db
 *.db-shm
 *.db-wal
+.env
+/artifacts/
+/package/
+citypulse-ativos-*.csv
 .vs/
 .DS_Store

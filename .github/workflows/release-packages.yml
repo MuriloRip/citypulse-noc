@@ -1,0 +1,73 @@
+name: Build release packages
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Publish Windows app
+        shell: pwsh
+        run: dotnet publish .\CityPulse.Api\CityPulse.Api.csproj --configuration Release --runtime win-x64 --self-contained true /p:PublishSingleFile=true --output .\package\win-x64
+      - name: Build Windows installer
+        shell: pwsh
+        run: |
+          choco install innosetup --yes --no-progress
+          $env:CITYPULSE_PUBLISH_DIR = (Resolve-Path .\package\win-x64).Path
+          New-Item -ItemType Directory -Force .\artifacts | Out-Null
+          $env:CITYPULSE_ARTIFACT_DIR = (Resolve-Path .\artifacts).Path
+          $env:CITYPULSE_VERSION = if ($env:GITHUB_REF_NAME -match '^v?(\d+\.\d+\.\d+)$') { $Matches[1] } else { '0.1.0' }
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" .\deploy\CityPulse.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CityPulse-Windows-Installer
+          path: .\artifacts\CityPulse-Setup-win-x64.exe
+          if-no-files-found: error
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Publish Linux app
+        run: dotnet publish ./CityPulse.Api/CityPulse.Api.csproj --configuration Release --runtime linux-x64 --self-contained true /p:PublishSingleFile=true --output ./package/linux-x64
+      - name: Assemble Linux archive
+        run: |
+          cp ./deploy/run-citypulse-linux.sh ./package/linux-x64/run-citypulse.sh
+          chmod +x ./package/linux-x64/CityPulse.Api ./package/linux-x64/run-citypulse.sh
+          cp ./README.md ./package/linux-x64/README.md
+          tar -C ./package -czf ./CityPulse-linux-x64.tar.gz linux-x64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CityPulse-Linux-x64
+          path: ./CityPulse-linux-x64.tar.gz
+          if-no-files-found: error
+
+  attach-to-release:
+    if: github.event_name == 'release'
+    needs: [windows, linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+      - name: Upload release packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.event.release.tag_name }}
+        run: gh release upload "$TAG_NAME" ./artifacts/CityPulse-Windows-Installer/CityPulse-Setup-win-x64.exe ./artifacts/CityPulse-Linux-x64/CityPulse-linux-x64.tar.gz

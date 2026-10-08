@@ -1,0 +1,14 @@
+{$CITYPULSE_DOMAIN} {
+	encode zstd gzip
+	tls internal
+	basic_auth {
+		{$CITYPULSE_AUTH_USER} {$CITYPULSE_AUTH_HASH}
+	}
+	reverse_proxy citypulse:8080
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+}

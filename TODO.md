@@ -1,11 +1,35 @@
-# CityPulse — entregas
+# CityPulse — pendências conhecidas
 
-- [x] **NOC operacional:** exibir estado geral, disponibilidade média, MTTR, incidentes abertos, ativos por status e lista de incidentes com localização e tipo de problema.
-- [x] **Gestão de ativos:** permitir cadastro de alvo com nome, endereço, categoria, tier e relação opcional com ativo pai; validar campos obrigatórios no cliente.
-- [x] **Polling e máquina de estados real:** executar ICMP com `System.Net.NetworkInformation.Ping` e HTTP com `HttpClient`; atualizar ativos em ciclo periódico; exigir 3 falhas consecutivas para marcar `down`; manter `degraded` para erro HTTP e propagar `unreachable` a filhos quando o pai estiver indisponível.
-- [x] **Métricas e histórico persistentes:** calcular MTTR e disponibilidade a partir dos incidentes e ativos gravados no SQLite via EF Core.
-- [x] **Indicador municipal auditável:** persistir `TotalChecks`, `SuccessfulChecks` e `UptimePercent`, exibir o Indicador 10.04/ISO 37120 no NOC e expor `GET /api/indicator` com checks, indisponibilidade total, incidentes, média por incidente e fórmula de apuração.
-- [x] **Segurança demonstrável:** aceitar somente endereços HTTP(S) autorizados ou IPv4 privados/municipais no CRUD; não executar shell ping; limitar concorrência no ciclo do motor.
-- [x] **Portabilidade .NET:** manter o domínio de polling em serviço hospedado ASP.NET Core, compilável para Windows Service ou daemon Linux, com Swagger e API documentada.
-- [x] **Triagem Ativa:** transitar `ONLINE -> PENDING_TRIAGE -> NO_POWER` ou `OFFLINE`; oferecer `POST /api/assets/{id}/status` com `POWER_OUTAGE` e `NETWORK_FAULT`; aplicar fallback automático para `OFFLINE` após 5 minutos sem resposta; não acionar dependências em falta de energia e acionar cascata/SLA em falha de rede.
-- [x] **Console de Operações:** orientar o operador em um card contextual com timer, microcopy de WhatsApp simulado e botões largos de resolução; refletir os estados na tabela e na topologia com badges sóbrios e pulse sutil de triagem.
+## Entregas implementadas
+
+- [x] Painel operacional, gestão de ativos, incidentes, dependências e triagem ativa com sondagens reais.
+- [x] Disponibilidade observada por tempo, verificações acumuladas e endpoint `/api/indicator` para apoiar a apuração do indicador 10.04 da ISO 37120.
+- [x] Descoberta manual e autorizada de redes IPv4 privadas, com revisão antes da inclusão no inventário.
+- [x] Empacotamento inicial e configurações de implantação local/Docker; ainda requer validação operacional antes de uso em produção.
+
+Este arquivo acompanha trabalho que ainda não está implementado. O escopo e as capacidades atuais estão descritos no [README principal](./README.md).
+
+## Identidade e governança
+
+- [ ] Implementar autenticação individual OIDC/SSO antes de expor o serviço a vários técnicos.
+- [ ] Definir perfis de acesso e autorização por operação, organização e inventário.
+- [ ] Registrar auditoria de ações com operador, horário e resultado, sem guardar segredos ou conteúdo desnecessário.
+- [ ] Definir retenção, exportação e exclusão de dados com o controlador responsável, conforme a finalidade e a base legal aplicável.
+
+## Operação e integrações
+
+- [ ] Criar testes automatizados para políticas de alvos, transições de estado, disponibilidade e migração de dados.
+- [ ] Criar um fluxo de primeira configuração e modelos simples de verificação, com linguagem acessível e limites de coleta explícitos.
+- [ ] Adicionar alertas configuráveis e integrações autorizadas.
+- [ ] Planejar a migração para PostgreSQL, paginação, agendamento distribuído e retenção antes de buscar milhares de ativos.
+- [ ] Implementar coleta autenticada de métricas de host e SNMPv3 somente leitura para equipamentos e redes autorizados.
+- [ ] Adicionar testes de carga e publicar limites medidos antes de afirmar capacidade ou escala.
+
+## Limites atuais
+
+- A descoberta atual é manual, limitada a IPv4 privado `/24` a `/32` e a portas TCP comuns; não consulta SNMP, MAC/fabricante, não coleta payload e não garante identificação. A classificação por serviço é aproximada.
+- O monitoramento atual faz somente verificações de disponibilidade ICMP/HTTP; não mede CPU/memória e não executa scripts customizados.
+- O uso atual de SQLite não foi dimensionado nem testado para milhares de ativos.
+- O backend ainda não autentica usuários nem distingue operadores; em produção deve ficar atrás de um proxy autenticado e HTTPS.
+- Endereços IP, nomes e localizações podem ser dados pessoais dependendo do contexto. Colete apenas o necessário e restrinja acesso e retenção.
+- O sistema não declara conformidade automática com a LGPD; a organização responsável deve definir finalidade, base legal, transparência e atendimento aos direitos aplicáveis.

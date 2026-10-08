@@ -20,6 +20,9 @@ public sealed class Asset
     public double UptimePercent { get; set; } = 100;
     public long TotalChecks { get; set; }
     public long SuccessfulChecks { get; set; }
+    public double AvailabilityAvailableSeconds { get; set; }
+    public double AvailabilityObservedSeconds { get; set; }
+    public DateTime? AvailabilityRecordedAtUtc { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? LastCheckedAtUtc { get; set; }
     public DateTime? TriageStartedAtUtc { get; set; }

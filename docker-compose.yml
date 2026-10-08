@@ -1,0 +1,56 @@
+services:
+  citypulse:
+    build:
+      context: .
+    restart: unless-stopped
+    environment:
+      Security__TrustedAccessProxy: "true"
+    expose:
+      - "8080"
+    volumes:
+      - citypulse-data:/data
+    networks:
+      - citypulse
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_RAW
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  proxy:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      CITYPULSE_DOMAIN: ${CITYPULSE_DOMAIN:?Set CITYPULSE_DOMAIN in .env}
+      CITYPULSE_AUTH_USER: ${CITYPULSE_AUTH_USER:?Set CITYPULSE_AUTH_USER in .env}
+      CITYPULSE_AUTH_HASH: ${CITYPULSE_AUTH_HASH:?Set CITYPULSE_AUTH_HASH in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ${CITYPULSE_CADDYFILE:-./deploy/Caddyfile}:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - citypulse
+    depends_on:
+      - citypulse
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  citypulse-data:
+  caddy-data:
+  caddy-config:
+
+networks:
+  citypulse:

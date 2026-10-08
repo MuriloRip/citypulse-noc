@@ -1,0 +1,10 @@
+.git
+.github
+.vs
+**/bin
+**/obj
+**/publish
+**/*.db
+**/*.db-shm
+**/*.db-wal
+.env

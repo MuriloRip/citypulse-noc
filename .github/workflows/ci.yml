@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Build API
+        run: dotnet build CityPulse.Api/CityPulse.Api.csproj --configuration Release
+      - name: Audit NuGet packages
+        shell: bash
+        run: |
+          audit_output="$(dotnet list CityPulse.Api/CityPulse.Api.csproj package --vulnerable --include-transitive)"
+          printf '%s\n' "$audit_output"
+          if printf '%s\n' "$audit_output" | grep -Eiq '^[[:space:]]*>[[:space:]]+[^[:space:]]+[[:space:]]+[^[:space:]]+[[:space:]]+(critical|high|moderate|low)[[:space:]]'; then
+            echo "::error::NuGet vulnerability found"
+            exit 1
+          fi
+      - name: Check JavaScript syntax
+        run: |
+          node --check CityPulse.Api/wwwroot/app.js
+          node --check CityPulse.Api/wwwroot/service-worker.js
+      - name: Check Linux launcher syntax
+        run: bash -n deploy/run-citypulse-linux.sh
+      - name: Validate Docker Compose
+        run: docker compose --env-file .env.example config --quiet
