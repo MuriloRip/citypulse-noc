@@ -561,6 +561,13 @@ select:focus-visible {
   min-width: 220px;
 }
 
+.asset-results-count {
+  min-height: 1em;
+  margin: -10px 0 12px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
 
 
 .resolution-button.power {

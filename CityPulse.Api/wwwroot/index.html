@@ -10,7 +10,7 @@
   <link rel="icon" href="/icons/citypulse.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/icons/citypulse-180.png" />
   <link rel="stylesheet" href="/styles.css?v=3" />
-  <link rel="stylesheet" href="/professional.css?v=7" />
+  <link rel="stylesheet" href="/professional.css?v=8" />
 </head>
 <body>
   <div class="app-shell">
@@ -147,6 +147,7 @@
               <label>Status<select id="asset-status-filter"><option value="">Todos os status</option><option value="online">Online</option><option value="degraded">Degradado</option><option value="pendingTriage">Em triagem</option><option value="noPower">Sem energia</option><option value="down">Offline</option><option value="unreachable">Inalcançável</option></select></label>
               <button class="secondary-button" id="export-assets">Exportar CSV</button>
             </div>
+            <p class="asset-results-count" id="asset-results-count" role="status" aria-live="polite"></p>
             <div class="table-wrap">
               <table>
                 <thead><tr><th>ATIVO</th><th>ENDEREÇO</th><th>CATEGORIA</th><th>STATUS</th><th>LATÊNCIA</th><th>AÇÕES</th></tr></thead>
@@ -210,6 +211,6 @@
     </form>
   </dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="/app.js?v=8"></script>
+  <script type="module" src="/app.js?v=9"></script>
 </body>
 </html>

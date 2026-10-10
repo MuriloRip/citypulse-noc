@@ -25,6 +25,13 @@ function escapeHtml(value) {
   })[character]);
 }
 
+function normalizeSearchText(value) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('pt-BR');
+}
+
 function parseUtc(value) {
   if (typeof value !== 'string') return NaN;
   const utcValue = /(?:Z|[+-]\d{2}:\d{2})$/i.test(value) ? value : `${value}Z`;
@@ -229,13 +236,16 @@ function updateDiscoveryBulkActions() {
 }
 
 function renderAssets() {
-  const query = $('#asset-search').value.trim().toLocaleLowerCase('pt-BR');
+  const query = normalizeSearchText($('#asset-search').value.trim());
   const status = $('#asset-status-filter').value;
   const filteredAssets = snapshot.assets.filter((asset) => {
     const matchesQuery = !query || [asset.name, asset.address, asset.category, asset.location]
-      .some((value) => String(value ?? '').toLocaleLowerCase('pt-BR').includes(query));
+      .some((value) => normalizeSearchText(value).includes(query));
     return matchesQuery && (!status || asset.status === status);
   });
+  $('#asset-results-count').textContent = snapshot.assets.length === 0
+    ? 'Nenhum ativo cadastrado.'
+    : `Exibindo ${filteredAssets.length} de ${snapshot.assets.length} ativos`;
   $('#assets-table').innerHTML = filteredAssets.length
     ? filteredAssets.map((asset) => {
       const status = statusClass(asset.status);
