@@ -1,6 +1,8 @@
 # CityPulse NOC
 
-Plataforma de operações para acompanhar disponibilidade, incidentes e dependências de ativos de infraestrutura. O backend usa ASP.NET Core/.NET 8, EF Core e SQLite; a interface é servida pelo próprio backend. O produto não depende de um tipo específico de organização ou setor.
+Plataforma de monitoramento e inventário de infraestrutura para equipes que precisam acompanhar disponibilidade, incidentes e dependências de ativos em redes autorizadas. Reúne um painel web, sondagens de conectividade e descoberta manual de dispositivos, com revisão do operador antes de incluir resultados no inventário.
+
+O backend usa ASP.NET Core/.NET 8, EF Core e SQLite, e serve a própria interface web. Pode ser executado localmente ou implantado como uma instância compartilhada; as instruções abaixo descrevem instalação, operação, segurança e limites conhecidos.
 
 ## Executar localmente
 
